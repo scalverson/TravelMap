@@ -4,3 +4,6 @@
 
 # Ignore testing example directory
 /Examples
+
+# Ignore PyCharm products
+/.idea
