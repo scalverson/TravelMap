@@ -1,4 +1,4 @@
-from folium import Map, Marker, Popup, Icon, FeatureGroup, LayerControl
+from folium import Map, Marker, Popup, Icon, FeatureGroup, LayerControl, TileLayer
 from PyQt5.QtCore import QUrl
 from PyQt5.QtWebEngineWidgets import *
 from os import path
@@ -8,7 +8,14 @@ class TravelMap(QWebEngineView):
     def __init__(self, location_data):
         super(TravelMap, self).__init__()
 
-        self.map = Map(location=[0.0, 0.0], zoom_start=2)
+        # tiles: 'cartodbdark_matter', 'cartodbpositron', 'stamentoner', 'mapquestopen', 'openstreetmap'
+        self.map = Map(location=[0.0, 0.0], zoom_start=2, tiles='cartodbpositron')
+        self.map.fit_bounds([[60, -120], [-35, 120]])
+        TileLayer('openstreetmap').add_to(self.map)
+        #TileLayer('mapquestopen').add_to(self.map)
+        TileLayer('cartodbpositron').add_to(self.map)
+        TileLayer('cartodbdark_matter').add_to(self.map)
+        #TileLayer('stamentoner').add_to(self.map)
 
         self.locations = location_data
         self.plot_markers(self.locations)
