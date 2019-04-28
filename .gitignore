@@ -1,3 +1,6 @@
 # Ignore generated html and csv files
 *.html
 *.csv
+
+# Ignore testing example directory
+/Examples
