@@ -1,9 +1,28 @@
 from folium import Map, Marker, Popup, Icon, FeatureGroup, LayerControl
+from PyQt5.QtCore import QUrl
+from PyQt5.QtWebEngineWidgets import *
+from os import path
 
 
-class TravelMap(Map)
-    def __init__(self):
-        super().__init__(location=[0.0, 0.0], zoom_start = 2)
+class TravelMap(QWebEngineView):
+    def __init__(self, location_data):
+        super(TravelMap, self).__init__()
+
+        self.map = Map(location=[0.0, 0.0], zoom_start=2)
+
+        self.locations = location_data
+        self.plot_markers(self.locations)
+
+        dirname = path.dirname(__file__)
+        htmlFile = path.join(dirname, 'html/mapTemp.html')
+        self.map.save(htmlFile)
+        self.url = QUrl.fromLocalFile(htmlFile)
+
+        self.load(self.url)
+        self.show()
+
+    def update_data(self):
+        pass
 
     def plot_markers(self, locations):
         lived_group = FeatureGroup(name='Where I\'ve Lived')
@@ -29,20 +48,26 @@ class TravelMap(Map)
                     icon_type = Icon(color='lightblue', icon_color='cadetblue', icon='list-alt')
                     group = wish_group
                 else:
-                    icon_type = folium.Icon()
+                    icon_type = Icon()
                     group = other_group
                 # print(icon_type)
                 # icon_type = Icon(color='green', icon='home')
                 popup = Popup(city["Full Name"], parse_html=True)
-                Marker([city['coordinates'][0], city['coordinates'][1]],
-                              popup=popup,
-                              icon=icon_type,
-                              ).add_to(group)
+                coords = city['coordinates'].replace('(', '').split(',')
+                try:
+                    latitude = float(coords[0])
+                    longitude = float(coords[1])
+                except ValueError:
+                    print(city['City'] + ' type error for coordinates: ' + city['coordinates'])
+                    continue
+                #print(latitude, longitude)
+                Marker([latitude, longitude], popup=popup, icon=icon_type).add_to(group)
 
-        lived_group.add_to(self)
-        visit_group.add_to(self)
-        wish_group.add_to(self)
-        # other_group.add_to(self)
-        LayerControl().add_to(self)
+        lived_group.add_to(self.map)
+        visit_group.add_to(self.map)
+        wish_group.add_to(self.map)
+        # other_group.add_to(self.map)
+        LayerControl().add_to(self.map)
 
-        self.render()
+        #self.render()
+
