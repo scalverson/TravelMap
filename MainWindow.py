@@ -10,7 +10,7 @@ from os import path
 
 class MainWindow(QMainWindow):
     def __init__(self):
-        super().__init__()
+        super(MainWindow, self).__init__()
 
         self.statusBar().showMessage('Loading Data...')
 
@@ -66,7 +66,7 @@ class MainWindow(QMainWindow):
         #layout.addWidget(tabWidget)
         self.setCentralWidget(tabWidget)
 
-        self.setGeometry(600, 600, 250, 150)
+        self.setGeometry(600, 600, 900, 600)
         self.setWindowTitle('MyTravel')
         self.show()
 
