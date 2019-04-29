@@ -1,6 +1,14 @@
 import pandas as pd
 from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
+from pycountry import countries
+
+states = ['Alaska', 'Alabama', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida',
+          'Georgia', 'Hawaii', 'Idaho', 'Indiana', 'Illinois', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine',
+          'Maryland', 'Massachusetts', 'Michigan', 'Mississippi', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire',
+          'New Jersey', 'New Mexico', 'New York', 'Minnesota', 'Missouri', 'North Carolina', 'North Dakota',
+          'Oklahoma', 'Ohio', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee',
+          'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming']
 
 
 class LocationHandler(object):
@@ -43,6 +51,38 @@ class LocationHandler(object):
             address, (lat, long) = geolocator.geocode(city)
             print(lat, long)
             return [lat, long]
+
+    @property
+    def total_countries(self):
+        return len(countries)
+
+    @property
+    def total_states(self):
+        return len(states)
+
+    @property
+    def visited_states(self):
+        state_list = []
+        for index, entry in self.data.iterrows():
+            if entry['Visited'] and entry['State']:
+                state_list.append(entry['State'])
+        return list(set(state_list))
+
+    @property
+    def visited_countries(self):
+        country_list = []
+        for index, entry in self.data.iterrows():
+            if entry['Visited']:
+                country_list.append(entry['Country'])
+        return list(set(country_list))
+
+    @property
+    def country_cnt(self):
+        return len(self.visited_countries)
+
+    @property
+    def state_cnt(self):
+        return len(self.visited_states)
 
 
 class GeoData(object):

@@ -17,8 +17,15 @@ class TravelMap(QWebEngineView):
         TileLayer('cartodbdark_matter').add_to(self.map)
         #TileLayer('stamentoner').add_to(self.map)
 
-        self.locations = location_data
-        self.plot_markers(self.locations)
+        #dirname = path.dirname(__file__)
+        #usa_map = path.join(dirname, 'data/us_states_geo.json')
+        #self.map.choropleth(geo_data=usa_map, data=location_data,
+        #                    columns=['State', 'Visited'],
+        #                    key_on='feature.properties.NAME',
+        #                    fill_color='YlGn', fill_opacity=0.6, line_opacity=0.2)
+
+        #self.plot_choropleth(location_data)
+        self.plot_markers(location_data)
 
         dirname = path.dirname(__file__)
         htmlFile = path.join(dirname, 'html/mapTemp.html')
@@ -77,4 +84,14 @@ class TravelMap(QWebEngineView):
         LayerControl().add_to(self.map)
 
         #self.render()
+
+    def plot_choropleth(self, locations):
+        dirname = path.dirname(__file__)
+        usa_map = path.join(dirname, 'data/us_states_geo.json')
+        self.map.choropleth(geo_data=usa_map, data=locations,
+                       columns=['State', 'Visited'],
+                       key_on='feature.properties.NAME',
+                       fill_color='YlGn', fill_opacity=0.6, line_opacity=0.2)
+
+        #LayerControl().add_to(self.map)
 

@@ -1,5 +1,5 @@
-from PyQt5.QtWidgets import QMainWindow, QAction, QTabWidget, QTableView, QWidget, QVBoxLayout, \
-                            QPushButton, QFileDialog, QMenuBar
+from PyQt5.QtWidgets import QMainWindow, QAction, QTabWidget, QTableView, QWidget, QVBoxLayout, QHBoxLayout, \
+                            QPushButton, QFileDialog, QMenuBar, QLabel
 from PyQt5.QtCore import *
 from PyQt5.QtGui import QKeySequence
 from MapWidget import TravelMap
@@ -19,6 +19,7 @@ class MainWindow(QMainWindow):
         csvfile = path.join(dirname, 'data/user_sca_geodata.csv')
         self.model.read_csv(csvfile)
         self.data = self.model.data
+        print(self.model.country_cnt, self.model.state_cnt)
 
         self.mapWidget = TravelMap(self.data)
         self.tableWidget = QTableView()
@@ -52,9 +53,17 @@ class MainWindow(QMainWindow):
         #layout = QHBoxLayout()
         tabWidget = QTabWidget()
         dataWidget = QWidget()
+        country_stats = QLabel('Countries visited: ' +
+                               str(self.model.country_cnt) + '/' + str(self.model.total_countries))
+        state_stats = QLabel('States visited: ' +
+                             str(self.model.state_cnt) + '/' + str(self.model.total_states))
+        stats_layout = QHBoxLayout()
+        stats_layout.addWidget(state_stats)
+        stats_layout.addWidget(country_stats)
         addLocationButton = QPushButton('Add Location')
 
         data_layout = QVBoxLayout()
+        data_layout.addLayout(stats_layout)
         data_layout.addWidget(self.tableWidget)
         data_layout.addWidget(addLocationButton)
         data_layout.setAlignment(addLocationButton, Qt.AlignLeft)
