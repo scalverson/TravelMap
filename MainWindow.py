@@ -4,6 +4,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import QKeySequence
 from MapWidget import TravelMap
 from LocationData import LocationHandler
+from FormWidgets import LocationEntry
 import platform
 from os import path
 
@@ -19,7 +20,7 @@ class MainWindow(QMainWindow):
         csvfile = path.join(dirname, 'data/user_sca_geodata.csv')
         self.model.read_csv(csvfile)
         self.data = self.model.data
-        print(self.model.country_cnt, self.model.state_cnt)
+        #print(self.model.country_cnt, self.model.state_cnt)
 
         self.mapWidget = TravelMap(self.data)
         self.tableWidget = QTableView()
@@ -60,13 +61,14 @@ class MainWindow(QMainWindow):
         stats_layout = QHBoxLayout()
         stats_layout.addWidget(state_stats)
         stats_layout.addWidget(country_stats)
-        addLocationButton = QPushButton('Add Location')
+        add_location_button = QPushButton('Add Location')
+        add_location_button.clicked.connect(self.add_location)
 
         data_layout = QVBoxLayout()
         data_layout.addLayout(stats_layout)
         data_layout.addWidget(self.tableWidget)
-        data_layout.addWidget(addLocationButton)
-        data_layout.setAlignment(addLocationButton, Qt.AlignLeft)
+        data_layout.addWidget(add_location_button)
+        data_layout.setAlignment(add_location_button, Qt.AlignLeft)
         dataWidget.setLayout(data_layout)
 
         tabWidget.addTab(self.mapWidget, 'Map')
@@ -88,6 +90,10 @@ class MainWindow(QMainWindow):
     def display_data(self):
         self.tableWidget.setModel(PandasModel(self.data))
         self.tableWidget.update()
+
+    def add_location(self):
+        form = LocationEntry()
+        form.exec_()
 
 
 class PandasModel(QAbstractTableModel):
