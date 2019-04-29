@@ -64,7 +64,7 @@ class LocationHandler(object):
     def visited_states(self):
         state_list = []
         for index, entry in self.data.iterrows():
-            if entry['Visited'] and entry['State']:
+            if entry['Visited'] is True and entry['State']:
                 state_list.append(entry['State'])
         return list(set(state_list))
 
@@ -72,7 +72,7 @@ class LocationHandler(object):
     def visited_countries(self):
         country_list = []
         for index, entry in self.data.iterrows():
-            if entry['Visited']:
+            if entry['Visited'] is True and entry['Country']:
                 country_list.append(entry['Country'])
         return list(set(country_list))
 
