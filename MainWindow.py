@@ -89,7 +89,8 @@ class MainWindow(QMainWindow):
 
     def display_data(self):
         self.tableWidget.setModel(PandasModel(self.data))
-        self.tableWidget.update()
+        self.tableWidget.setSortingEnabled(True)
+        #self.tableWidget.update()
 
     def add_location(self):
         form = LocationEntry()
