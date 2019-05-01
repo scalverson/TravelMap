@@ -10,13 +10,17 @@ states = ['Alaska', 'Alabama', 'Arizona', 'Arkansas', 'California', 'Colorado', 
           'Oklahoma', 'Ohio', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee',
           'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming']
 
+db_fields = ['Address', 'City', 'State', 'Country', 'Visited', 'Lived', 'Wish', 'Favorite', 'Full Name',
+             'geocode', 'coordinates']
+
 
 class LocationHandler(object):
     def __init__(self):
         super(LocationHandler, self).__init__()
 
         self.geocode_delay = 0.2  # seconds
-        self.data = GeoData().data
+        self.database = GeoData()
+        self.data = self.database.data
 
     def read_csv(self, file):
         csv_data = pd.read_csv(file, na_values="")
@@ -26,31 +30,43 @@ class LocationHandler(object):
         self.data = pd.concat([self.data, csv_data], sort=False)
         #print(self.data)
 
-        #for index, city in self.data.iterrows():
-        #    if not city['Latitude'] or not city['Longitude']:
-        #        #print(city)
-        #        self.data['Latitude'][index], self.data['Longitude'][index] = self.get_geoloc(self.format_name(city))
+        for index, city in self.data.iterrows():
+            if not city['coordinates']:
+                print(city)
+                address, lat, long = self.get_geoloc(self.format_name(city))
+                city['geocode'] = address
+                city['coordinates'] = (lat, long, 0)
         #print(self.data['Latitude'])
 
     def write_csv(self, file_name=''):
         self.data.to_csv(file_name, index=False)
 
-    def new_location(self, city=''):
-        if city:
-            pass
+    def new_location(self, address='', city='', state='', country=''):
+        location = pd.DataFrame(columns=db_fields)
+        location['Address'] = address
+        location['City'] = city
+        location['State'] = state
+        location['Country'] = country
+        location['Full Name'] = self.format_name(location)
+        address, lat, long = self.get_geoloc(location['Full Name'])
+        location['geocode'] = address
+        location['coordinates'] = (lat, long, 0)
+        self.database.add_entry(location)
 
-    def format_name(self, city=pd.DataFrame):
-        city["State"] = " " + city["State"]
-        name_str = city["Address"].map(str) + " " + city["City"].map(str) + city["State"] + ", " + city["Country"]
+    def format_name(self, city=pd.DataFrame()):
+        name_str = ''
+        if not city.empty:
+            city["State"] = " " + city["State"]
+            name_str = city["Address"].map(str) + " " + city["City"].map(str) + city["State"] + ", " + city["Country"]
         return name_str
 
-    def get_geoloc(self, city):
-        if city is not None:
-            geolocator = Nominatim(user_agent="My_App")
-            geocode = RateLimiter(geolocator.geocode, min_delay_seconds=self.geocode_delay)
-            address, (lat, long) = geolocator.geocode(city)
+    def get_geoloc(self, city=''):
+        if city:
+            geo_locator = Nominatim(user_agent="My_App")
+            geocode = RateLimiter(geo_locator.geocode, min_delay_seconds=self.geocode_delay)
+            address, (lat, long) = geo_locator.geocode(city)
             print(lat, long)
-            return [lat, long]
+            return address, lat, long
 
     @property
     def total_countries(self):
@@ -84,19 +100,23 @@ class LocationHandler(object):
     def state_cnt(self):
         return len(self.visited_states)
 
+    @property
+    def location_cnt(self):
+        return len(self.data.index)
+
 
 class GeoData(object):
     def __init__(self):
         super(GeoData, self).__init__()
 
-        self.data = pd.DataFrame(columns=['Address', 'City', 'State', 'Country', 'Visited', 'Lived', 'Wish',
-                                          'Favorite', 'Full Name', 'geocode', 'coordinates'])
+        self.data = pd.DataFrame(columns=db_fields)
 
-    def add_entry(self, data=pd.DataFrame):
-        self.data = pd.concat([self.data, data], sort=False).fillna("", inplace=True)
+    def add_entry(self, data=pd.DataFrame()):
+        if not data.empty:
+            self.data = pd.concat([self.data, data], sort=False).fillna("", inplace=True)
 
     @property
-    def full_name(self, city=pd.DataFrame):
+    def full_name(self, city=pd.DataFrame()):
         city["State"] = " " + city["State"]
         return city["Address"] + " " + city["City"] + city["State"] + ", " + city["Country"]
 
@@ -119,6 +139,4 @@ class GeoData(object):
             else:
                 print('No instances of ' + city_str + ' found.')
                 return
-
-
 
