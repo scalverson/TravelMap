@@ -7,6 +7,7 @@ from LocationData import LocationHandler
 from FormWidgets import LocationEntry
 import platform
 from os import path
+import operator
 
 
 class MainWindow(QMainWindow):
@@ -17,12 +18,12 @@ class MainWindow(QMainWindow):
 
         self.model = LocationHandler()
         dirname = path.dirname(__file__)
-        csvfile = path.join(dirname, 'data/user_sca_geodata.csv')
-        self.model.read_csv(csvfile)
-        self.data = self.model.data
+        self.csvfile = path.join(dirname, 'data/user_sca_geodata.csv')
+        self.model.read_csv(self.csvfile)
+
         #print(self.model.country_cnt, self.model.state_cnt)
 
-        self.mapWidget = TravelMap(self.data)
+        self.mapWidget = TravelMap(self.model.data)
         self.tableWidget = QTableView()
 
         self.init_ui()
@@ -62,13 +63,22 @@ class MainWindow(QMainWindow):
         stats_layout.addWidget(state_stats)
         stats_layout.addWidget(country_stats)
         add_location_button = QPushButton('Add Location')
+        add_location_button.setFixedWidth(150)
         add_location_button.clicked.connect(self.add_location)
+        save_data_button = QPushButton('Save Data')
+        save_data_button.setFixedWidth(150)
+        save_data_button.clicked.connect(self.save_data)
+
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(add_location_button, Qt.AlignLeft)
+        button_layout.addWidget(save_data_button, Qt.AlignRight)
 
         data_layout = QVBoxLayout()
         data_layout.addLayout(stats_layout)
         data_layout.addWidget(self.tableWidget)
-        data_layout.addWidget(add_location_button)
-        data_layout.setAlignment(add_location_button, Qt.AlignLeft)
+        data_layout.addLayout(button_layout)
+
+        # data_layout.setAlignment(add_location_button)
         dataWidget.setLayout(data_layout)
 
         tabWidget.addTab(self.mapWidget, 'Map')
@@ -88,13 +98,23 @@ class MainWindow(QMainWindow):
         self.display_data()
 
     def display_data(self):
-        self.tableWidget.setModel(PandasModel(self.data))
+        self.tableWidget.setModel(PandasModel(self.model.data))
         self.tableWidget.setSortingEnabled(True)
-        #self.tableWidget.update()
+        self.tableWidget.repaint()
 
     def add_location(self):
         form = LocationEntry()
+        form.submitted.connect(self.push_data)
         form.exec_()
+
+    def save_data(self):
+        self.model.write_csv(self.csvfile)
+
+    def push_data(self, entry):
+        # print(entry)
+        self.model.new_location(entry)  # entry['Address'], entry['City'], entry['State'], entry['Country'])
+        self.mapWidget.update_data(self.model.data)
+        self.display_data()
 
 
 class PandasModel(QAbstractTableModel):
@@ -117,6 +137,49 @@ class PandasModel(QAbstractTableModel):
             if role == Qt.DisplayRole:
                 return str(self._data.values[index.row()][index.column()])
         return None
+
+    def setData(self, index, value, role=Qt.DisplayRole):
+        if not index.isValid():
+            return False
+        if role == Qt.DisplayRole and index.column() == 0:
+            # do stuff
+            pass
+        else:
+            pass
+        # self.emit(SIGNAL("dataChanged(QModelIndex,QModelIndex)"), index, index)
+        # print(">>> setData() index.row = ", index.row())
+        # print(">>> setData() index.column = ", index.column())
+        self.dataChanged.emit(index, index)
+        return True
+
+    def insertRows(self, position, rows=1, index=QModelIndex()):
+        """ Insert a row into the model. """
+        self.beginInsertRows(QModelIndex(), position, position + rows - 1)
+
+        # for row in range(rows):
+        #    self._data.insert(position + row, {"name": "", "address": ""})
+
+        self.endInsertRows()
+        return True
+
+    def removeRows(self, position, rows=1, index=QModelIndex()):
+        """ Remove a row from the model. """
+        self.beginRemoveRows(QModelIndex(), position, position + rows - 1)
+
+        del self._data[position:position + rows]
+
+        self.endRemoveRows()
+        return True
+
+    def sort(self, col, order=None):
+        """sort table by given column number col"""
+        # print(">>> sort() col = ", col)
+        if col != 0:
+            self.emit(SIGNAL("layoutAboutToBeChanged()"))
+            self._data = sorted(self.mylist, key=operator.itemgetter(col))
+            if order == Qt.DescendingOrder:
+                self._data.reverse()
+            self.emit(SIGNAL("layoutChanged()"))
 
     def headerData(self, col, orientation, role=Qt.DisplayRole):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:

@@ -1,3 +1,4 @@
+from PyQt5.QtCore import pyqtSignal, QObject
 import pandas as pd
 from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
@@ -14,50 +15,79 @@ db_fields = ['Address', 'City', 'State', 'Country', 'Visited', 'Lived', 'Wish', 
              'geocode', 'coordinates']
 
 
-class LocationHandler(object):
+class LocationHandler(QObject):
+    updated = pyqtSignal()
+
     def __init__(self):
         super(LocationHandler, self).__init__()
 
         self.geocode_delay = 0.2  # seconds
         self.database = GeoData()
-        self.data = self.database.data
+        # self.data = self.database.data
+        self.database.entry_added.connect(self.data_changed)
+
+    def data_changed(self, data=pd.DataFrame):
+        if not data.empty:
+            self.updated.emit()
+
+    @property
+    def data(self):
+        return self.database.data
 
     def read_csv(self, file):
-        csv_data = pd.read_csv(file, na_values="")
-        csv_data["State"] = " " + csv_data["State"]
-        csv_data.fillna("", inplace=True)
+        data = pd.read_csv(file, na_values="")
+        data["State"] = " " + data["State"]
+        data.fillna("", inplace=True)
 
-        self.data = pd.concat([self.data, csv_data], sort=False)
-        #print(self.data)
+        # data = pd.concat([self.data, csv_data], sort=False)
+        # self.database.add_entry(csv_data)
 
-        for index, city in self.data.iterrows():
-            if not city['coordinates']:
-                print(city)
-                address, lat, long = self.get_geoloc(self.format_name(city))
-                city['geocode'] = address
-                city['coordinates'] = (lat, long, 0)
-        #print(self.data['Latitude'])
+        # Retrieve geo data for entries lacking it
+        for index, city in data[data['coordinates'] == ''].iterrows():
+            if city['Full Name']:
+                full_name = city['Full Name']
+            else:
+                full_name = self.format_name(city)
+                data.at[index, 'Full Name'] = full_name
+            address, lat, long = self.get_geoloc(full_name)
+            data.at[index, 'geocode'] = address
+            data.at[index, 'coordinates'] = '(' + str(lat) + ' ,' + str(long) + ', 0)'
+
+        self.database.add_entry(data)
 
     def write_csv(self, file_name=''):
         self.data.to_csv(file_name, index=False)
 
-    def new_location(self, address='', city='', state='', country=''):
+    def new_location(self, loc_data):  # address='', city='', state='', country=''):
         location = pd.DataFrame(columns=db_fields)
-        location['Address'] = address
-        location['City'] = city
-        location['State'] = state
-        location['Country'] = country
-        location['Full Name'] = self.format_name(location)
-        address, lat, long = self.get_geoloc(location['Full Name'])
-        location['geocode'] = address
-        location['coordinates'] = (lat, long, 0)
+        if 'Address' in loc_data.keys():
+            location.at[0, 'Address'] = loc_data['Address']
+        if 'City' in loc_data.keys():
+            location.at[0, 'City'] = loc_data['City']
+        if 'State' in loc_data.keys():
+            location.at[0, 'State'] = loc_data['State']
+        if 'Country' in loc_data.keys():
+            location.at[0, 'Country'] = loc_data['Country']
+        if 'Lived' in loc_data.keys():
+            location.at[0, 'Lived'] = loc_data['Lived']
+        if 'Visited' in loc_data.keys():
+            location.at[0, 'Visited'] = loc_data['Visited']
+        if 'Wish' in loc_data.keys():
+            location.at[0, 'Wish'] = loc_data['Wish']
+        if 'Favorite' in loc_data.keys():
+            location.at[0, 'Favorite'] = loc_data['Favorite']
+        full_name = self.format_name(location.loc[0])
+        location.at[0, 'Full Name'] = full_name
+        address, lat, long = self.get_geoloc(full_name)
+        location.at[0, 'geocode'] = address
+        location.at[0, 'coordinates'] = '(' + str(lat) + ' ,' + str(long) + ' , 0)'
         self.database.add_entry(location)
 
     def format_name(self, city=pd.DataFrame()):
         name_str = ''
         if not city.empty:
             city["State"] = " " + city["State"]
-            name_str = city["Address"].map(str) + " " + city["City"].map(str) + city["State"] + ", " + city["Country"]
+            name_str = city["Address"] + " " + city["City"] + city["State"] + ", " + city["Country"]
         return name_str
 
     def get_geoloc(self, city=''):
@@ -65,7 +95,7 @@ class LocationHandler(object):
             geo_locator = Nominatim(user_agent="My_App")
             geocode = RateLimiter(geo_locator.geocode, min_delay_seconds=self.geocode_delay)
             address, (lat, long) = geo_locator.geocode(city)
-            print(lat, long)
+            #print(lat, long)
             return address, lat, long
 
     @property
@@ -105,15 +135,19 @@ class LocationHandler(object):
         return len(self.data.index)
 
 
-class GeoData(object):
+class GeoData(QObject):
+    entry_added = pyqtSignal(pd.DataFrame)
+
     def __init__(self):
         super(GeoData, self).__init__()
 
         self.data = pd.DataFrame(columns=db_fields)
 
-    def add_entry(self, data=pd.DataFrame()):
-        if not data.empty:
-            self.data = pd.concat([self.data, data], sort=False).fillna("", inplace=True)
+    def add_entry(self, data):
+        # print(data)
+        self.data = self.data.append(data, sort=False, ignore_index=True)
+        # print(self.data)
+        self.entry_added.emit(data)
 
     @property
     def full_name(self, city=pd.DataFrame()):

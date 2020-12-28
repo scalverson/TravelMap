@@ -1,10 +1,12 @@
 from PyQt5.QtWidgets import QFormLayout, QDialog, QRadioButton, QPushButton, QLineEdit, QHBoxLayout, QLabel, \
                             QButtonGroup
-#from PyQt5.QtCore import Qt
+from PyQt5.QtCore import pyqtSignal
 from pandas import DataFrame as df
 
 
 class LocationEntry(QDialog):
+    submitted = pyqtSignal(dict)
+
     def __init__(self, parent=None):
         super(LocationEntry, self).__init__(parent)
 
@@ -74,13 +76,15 @@ class LocationEntry(QDialog):
         self.show()
 
     def submit_entry(self):
-        #self.emit(accepted())
-        data = {'Address':   self.state_entry.Text(),
-                'City':      self.city_entry.Text(),
-                'State':     self.state_entry.Text(),
-                'Country':   self.country_entry.Text(),
+        data = {'Address':   str(self.state_entry.text()),
+                'City':      str(self.city_entry.text()),
+                'State':     str(self.state_entry.text()),
+                'Country':   str(self.country_entry.text()),
                 'Lived':     self.lived_button.isChecked(),
                 'Visited':   self.visited_button.isChecked(),
                 'Wish':      self.wish_button.isChecked(),
                 'Favorite':  self.favorite_button.isChecked()}
+        self.submitted.emit(data)
+        self.accepted.emit()
+        self.close()
 
