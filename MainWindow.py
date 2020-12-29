@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QMainWindow, QAction, QTabWidget, QTableView, QWidget, QVBoxLayout, QHBoxLayout, \
-                            QPushButton, QFileDialog, QMenuBar, QLabel
+                            QPushButton, QFileDialog, QMenuBar, QLabel, QMessageBox
 from PyQt5.QtCore import *
 from PyQt5.QtGui import QKeySequence
 from MapWidget import TravelMap
@@ -29,7 +29,7 @@ class MainWindow(QMainWindow):
         self.init_ui()
         self.display_data()
 
-        self.statusBar().showMessage('Ready')
+        self.statusBar().showMessage('Ready', 2000)
 
     def init_ui(self):
         self.statusBar().showMessage('Generating Display...')
@@ -108,7 +108,18 @@ class MainWindow(QMainWindow):
         form.exec_()
 
     def save_data(self):
-        self.model.write_csv(self.csvfile)
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+        msg.setText("Are you sure you wish to save your changes?")
+        msg.setWindowTitle("Save Data")
+        msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+        # msg.buttonClicked.connect(msgButtonClick)
+
+        result = msg.exec()
+        if result == QMessageBox.Ok:
+            self.statusBar().showMessage('Saving...')
+            self.model.write_csv(self.csvfile)
+            self.statusBar().showMessage('Saving...', 2000)
 
     def push_data(self, entry):
         # print(entry)
@@ -175,11 +186,11 @@ class PandasModel(QAbstractTableModel):
         """sort table by given column number col"""
         # print(">>> sort() col = ", col)
         if col != 0:
-            self.emit(SIGNAL("layoutAboutToBeChanged()"))
-            self._data = sorted(self.mylist, key=operator.itemgetter(col))
+            self.layoutAboutToBeChanged.emit()
+            self._data = sorted(self._data, key=operator.itemgetter(col))
             if order == Qt.DescendingOrder:
                 self._data.reverse()
-            self.emit(SIGNAL("layoutChanged()"))
+            self.layoutChanged.emit()
 
     def headerData(self, col, orientation, role=Qt.DisplayRole):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
