@@ -139,12 +139,12 @@ class MainWindow(QMainWindow):
     def on_cell_click(self, cell):
         # print(cell.data(), self.model.data.at[cell.row(), 'Country'])
         data = self.model.data.loc[cell.row()]
-        form = LocationEntry(data.to_dict())
+        form = LocationEntry(data.to_dict(), self)
         form.submitted.connect(self.push_data)
         form.exec_()
 
     def add_location(self):
-        form = LocationEntry()
+        form = LocationEntry(None, self)
         form.submitted.connect(self.push_data)
         form.exec_()
 

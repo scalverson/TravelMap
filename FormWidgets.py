@@ -6,8 +6,8 @@ from PyQt5.QtCore import pyqtSignal
 class LocationEntry(QDialog):
     submitted = pyqtSignal(dict)
 
-    def __init__(self, data=None):
-        super(LocationEntry, self).__init__() # parent)
+    def __init__(self, data=None, parent=None):
+        super(LocationEntry, self).__init__(parent)
 
         self.setWindowTitle('Add/Edit Location')
 
