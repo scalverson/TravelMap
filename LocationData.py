@@ -11,23 +11,35 @@ states = ['Alaska', 'Alabama', 'Arizona', 'Arkansas', 'California', 'Colorado', 
           'Oklahoma', 'Ohio', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee',
           'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming']
 
-db_fields = ['Address', 'City', 'State', 'Country', 'Visited', 'Lived', 'Wish', 'Favorite', 'Full Name',
-             'geocode', 'coordinates']
+db_fields = ['Address', 'City', 'State', 'Country', 'Visited', 'Lived', 'Wish', 'Favorite', 'Full Name', 'geocode', 'coordinates']
 
 
 class LocationHandler(QObject):
     updated = pyqtSignal()
+    data_changed = pyqtSignal()
 
     def __init__(self):
         super(LocationHandler, self).__init__()
 
         self.geocode_delay = 0.2  # seconds
         self.database = GeoData()
-        # self.data = self.database.data
-        self.database.entry_added.connect(self.data_changed)
 
-    def data_changed(self, data=pd.DataFrame):
+        self.saved = True
+
+        self.database.entry_added.connect(self.on_data_change)
+
+    @property
+    def saved(self):
+        return self._saved
+
+    @saved.setter
+    def saved(self, state=False):
+        self.data_changed.emit()
+        self._saved = state
+
+    def on_data_change(self, data=pd.DataFrame):
         if not data.empty:
+            self.saved = False
             self.updated.emit()
 
     @property
@@ -54,34 +66,47 @@ class LocationHandler(QObject):
             data.at[index, 'coordinates'] = '(' + str(lat) + ' ,' + str(long) + ', 0)'
 
         self.database.add_entry(data)
+        self.saved = True
 
     def write_csv(self, file_name=''):
         self.data.to_csv(file_name, index=False)
+        self.saved = True
 
     def new_location(self, loc_data):  # address='', city='', state='', country=''):
-        location = pd.DataFrame(columns=db_fields)
-        if 'Address' in loc_data.keys():
-            location.at[0, 'Address'] = loc_data['Address']
-        if 'City' in loc_data.keys():
-            location.at[0, 'City'] = loc_data['City']
-        if 'State' in loc_data.keys():
-            location.at[0, 'State'] = loc_data['State']
-        if 'Country' in loc_data.keys():
-            location.at[0, 'Country'] = loc_data['Country']
-        if 'Lived' in loc_data.keys():
-            location.at[0, 'Lived'] = loc_data['Lived']
-        if 'Visited' in loc_data.keys():
-            location.at[0, 'Visited'] = loc_data['Visited']
-        if 'Wish' in loc_data.keys():
-            location.at[0, 'Wish'] = loc_data['Wish']
-        if 'Favorite' in loc_data.keys():
-            location.at[0, 'Favorite'] = loc_data['Favorite']
-        full_name = self.format_name(location.loc[0])
-        location.at[0, 'Full Name'] = full_name
-        address, lat, long = self.get_geoloc(full_name)
-        location.at[0, 'geocode'] = address
-        location.at[0, 'coordinates'] = '(' + str(lat) + ' ,' + str(long) + ' , 0)'
-        self.database.add_entry(location)
+        loc_in_data = self.data[(self.data['Address'] == loc_data['Address']) &
+                                (self.data['City'] == loc_data['City']) &
+                                (self.data['State'] == loc_data['State']) &
+                                (self.data['Country'] == loc_data['Country'])]
+        if not loc_in_data.empty:
+            ind = loc_in_data.index
+            for key in loc_data.keys():
+                self.database.data.at[ind, key] = loc_data[key]
+            self.on_data_change(self.data.loc[ind])
+        else:
+            location = pd.DataFrame(columns=db_fields)
+            if 'Address' in loc_data.keys():
+                location.at[0, 'Address'] = loc_data['Address']
+            if 'City' in loc_data.keys():
+                location.at[0, 'City'] = loc_data['City']
+            if 'State' in loc_data.keys():
+                location.at[0, 'State'] = loc_data['State']
+            if 'Country' in loc_data.keys():
+                location.at[0, 'Country'] = loc_data['Country']
+            if 'Lived' in loc_data.keys():
+                location.at[0, 'Lived'] = loc_data['Lived']
+            if 'Visited' in loc_data.keys():
+                location.at[0, 'Visited'] = loc_data['Visited']
+            if 'Wish' in loc_data.keys():
+                location.at[0, 'Wish'] = loc_data['Wish']
+            if 'Favorite' in loc_data.keys():
+                location.at[0, 'Favorite'] = loc_data['Favorite']
+            full_name = self.format_name(location.loc[0])
+            location.at[0, 'Full Name'] = full_name
+            address, lat, long = self.get_geoloc(full_name)
+            location.at[0, 'geocode'] = address
+            if lat is not None and long is not None:
+                location.at[0, 'coordinates'] = '(' + str(lat) + ' ,' + str(long) + ' , 0)'
+            self.database.add_entry(location)
 
     def format_name(self, city=pd.DataFrame()):
         name_str = ''
@@ -91,12 +116,18 @@ class LocationHandler(QObject):
         return name_str
 
     def get_geoloc(self, city=''):
+        address = ''
+        lat = None
+        long = None
         if city:
             geo_locator = Nominatim(user_agent="My_App")
             geocode = RateLimiter(geo_locator.geocode, min_delay_seconds=self.geocode_delay)
-            address, (lat, long) = geo_locator.geocode(city)
-            #print(lat, long)
-            return address, lat, long
+            try:
+                address, (lat, long) = geo_locator.geocode(city)
+            except TypeError:
+                print('Could not retrieve geocode!  Check input fields and try again.')
+            # print(address, lat, long)
+        return address, lat, long
 
     @property
     def total_countries(self):

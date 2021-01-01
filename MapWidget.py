@@ -12,7 +12,7 @@ class TravelMap(QWebEngineView):
         self.htmlFile = path.join(dirname, 'html/mapTemp.html')
 
         # tiles: 'cartodbdark_matter', 'cartodbpositron', 'stamentoner', 'mapquestopen', 'openstreetmap'
-        self.map_styles = ['openstreetmap', 'cartodbpositron', 'cartodbdark_matter']
+        self.map_styles = ['cartodbpositron', 'openstreetmap', 'cartodbdark_matter']
 
         self.update_data(location_data)
         # self.layer_ctrl.add_to(self.map)

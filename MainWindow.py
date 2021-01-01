@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QMainWindow, QAction, QTabWidget, QTableView, QWidget, QVBoxLayout, QHBoxLayout, \
-                            QPushButton, QFileDialog, QMenuBar, QLabel, QMessageBox
+                            QPushButton, QFileDialog, QMenuBar, QLabel, QMessageBox, QAbstractItemView
 from PyQt5.QtCore import *
-from PyQt5.QtGui import QKeySequence
+from PyQt5.QtGui import QKeySequence, QFont
 from MapWidget import TravelMap
 from LocationData import LocationHandler
 from FormWidgets import LocationEntry
@@ -21,17 +21,27 @@ class MainWindow(QMainWindow):
         self.csvfile = path.join(dirname, 'data/user_sca_geodata.csv')
         self.model.read_csv(self.csvfile)
 
-        #print(self.model.country_cnt, self.model.state_cnt)
+        # print(self.model.country_cnt, self.model.state_cnt)
 
         self.mapWidget = TravelMap(self.model.data)
         self.tableWidget = QTableView()
+        self.tableWidget.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.tableWidget.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.tableWidget.doubleClicked.connect(self.on_cell_click)
 
         self.init_ui()
         self.display_data()
 
+        self.model.data_changed.connect(self.on_data_change)
+
+        self.on_data_change()
         self.statusBar().showMessage('Ready', 2000)
 
     def init_ui(self):
+        label_font = QFont()
+        label_font.setPointSize(20)
+        label_font.setBold(True)
+
         self.statusBar().showMessage('Generating Display...')
 
         if platform.uname().system.startswith('Darw'):
@@ -39,39 +49,46 @@ class MainWindow(QMainWindow):
         else:
             self._menu_bar = self.menuBar()  # refer to the default one
 
-        #newAct = QAction('New Profile', self)
-        #newAct.triggered.connect(self.new_config())
-        #loadAct = QAction('Load Profile', self)
-        #loadAct.triggered.connect(self.load_file())
+        # newAct = QAction('New Profile', self)
+        # newAct.triggered.connect(self.new_config())
+        # loadAct = QAction('Load Profile', self)
+        # loadAct.triggered.connect(self.load_file())
 
         fileMenu = self._menu_bar.addMenu(self.tr('Menu name', '&File'))
         newAction = fileMenu.addAction(self.tr('Fine Menu Command', '&New'))
-        #fileMenu.addAction(loadAct)
+        # fileMenu.addAction(loadAct)
 
         newAction.setShortcut(QKeySequence.New)
         newAction.setToolTip(self.tr('File:New tooltip', 'Create a new, empty document'))
         # newAction.triggered.connect(self.load_file())
 
-        #layout = QHBoxLayout()
+        # layout = QHBoxLayout()
         tabWidget = QTabWidget()
         dataWidget = QWidget()
-        country_stats = QLabel('Countries visited: ' +
-                               str(self.model.country_cnt) + '/' + str(self.model.total_countries))
-        state_stats = QLabel('States visited: ' +
-                             str(self.model.state_cnt) + '/' + str(self.model.total_states))
+        self.country_stats = QLabel('Countries visited:  / ')
+        self.country_stats.setFont(label_font)
+        self.country_stats.setAlignment(Qt.AlignCenter)
+        self.state_stats = QLabel('States visited:  / ')
+        self.state_stats.setFont(label_font)
+        self.state_stats.setAlignment(Qt.AlignCenter)
+        self.wish_stats = QLabel('Wish list: ')
+        self.wish_stats.setFont(label_font)
+        self.wish_stats.setAlignment(Qt.AlignCenter)
         stats_layout = QHBoxLayout()
-        stats_layout.addWidget(state_stats)
-        stats_layout.addWidget(country_stats)
+        stats_layout.addWidget(self.state_stats)
+        stats_layout.addWidget(self.country_stats)
+        stats_layout.addWidget(self.wish_stats)
         add_location_button = QPushButton('Add Location')
         add_location_button.setFixedWidth(150)
         add_location_button.clicked.connect(self.add_location)
-        save_data_button = QPushButton('Save Data')
-        save_data_button.setFixedWidth(150)
-        save_data_button.clicked.connect(self.save_data)
+        self.save_data_button = QPushButton('Save Data')
+        self.save_data_button.setFixedWidth(150)
+        self.save_data_button.setVisible(False)
+        self.save_data_button.clicked.connect(self.save_data)
 
         button_layout = QHBoxLayout()
         button_layout.addWidget(add_location_button, Qt.AlignLeft)
-        button_layout.addWidget(save_data_button, Qt.AlignRight)
+        button_layout.addWidget(self.save_data_button, Qt.AlignRight)
 
         data_layout = QVBoxLayout()
         data_layout.addLayout(stats_layout)
@@ -84,12 +101,26 @@ class MainWindow(QMainWindow):
         tabWidget.addTab(self.mapWidget, 'Map')
         tabWidget.addTab(dataWidget, 'Data')
 
-        #layout.addWidget(tabWidget)
+        # layout.addWidget(tabWidget)
         self.setCentralWidget(tabWidget)
 
         self.setGeometry(600, 600, 900, 600)
         self.setWindowTitle('MyTravel')
         self.show()
+
+    def on_data_change(self):
+        if self.model.saved:
+            self.save_data_button.setVisible(False)
+        else:
+            self.save_data_button.setVisible(True)
+        self.update_stats()
+
+    def update_stats(self):
+        self.country_stats.setText('Countries visited: ' + str(self.model.country_cnt) + '/' + str(self.model.total_countries))
+        self.state_stats.setText('States visited: ' + str(self.model.state_cnt) + '/' + str(self.model.total_states))
+
+        wish_cnt = len(self.model.data[self.model.data['Wish'] == 1])
+        self.wish_stats.setText('Wish list: ' + str(wish_cnt))
 
     def load_file(self):
         file = QFileDialog().getOpenFileName(self, "Load Data", '', "Comma Separated Value Files (*.csv)")
@@ -102,6 +133,13 @@ class MainWindow(QMainWindow):
         self.tableWidget.setSortingEnabled(True)
         self.tableWidget.repaint()
 
+    def on_cell_click(self, cell):
+        # print(cell.data(), self.model.data.at[cell.row(), 'Country'])
+        data = self.model.data.loc[cell.row()]
+        form = LocationEntry(data.to_dict())
+        form.submitted.connect(self.push_data)
+        form.exec_()
+
     def add_location(self):
         form = LocationEntry()
         form.submitted.connect(self.push_data)
@@ -113,7 +151,6 @@ class MainWindow(QMainWindow):
         msg.setText("Are you sure you wish to save your changes?")
         msg.setWindowTitle("Save Data")
         msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
-        # msg.buttonClicked.connect(msgButtonClick)
 
         result = msg.exec()
         if result == QMessageBox.Ok:
@@ -121,11 +158,12 @@ class MainWindow(QMainWindow):
             self.model.write_csv(self.csvfile)
             self.statusBar().showMessage('Saving...', 2000)
 
-    def push_data(self, entry):
+    def push_data(self, entry=None):
         # print(entry)
-        self.model.new_location(entry)  # entry['Address'], entry['City'], entry['State'], entry['Country'])
-        self.mapWidget.update_data(self.model.data)
-        self.display_data()
+        if type(entry) == dict:
+            self.model.new_location(entry)  # entry['Address'], entry['City'], entry['State'], entry['Country'])
+            self.mapWidget.update_data(self.model.data)
+            self.display_data()
 
 
 class PandasModel(QAbstractTableModel):
