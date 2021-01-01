@@ -27,6 +27,7 @@ class MainWindow(QMainWindow):
         self.tableWidget = QTableView()
         self.tableWidget.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.tableWidget.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.tableWidget.setSortingEnabled(False)
         self.tableWidget.doubleClicked.connect(self.on_cell_click)
 
         self.init_ui()
@@ -65,6 +66,7 @@ class MainWindow(QMainWindow):
         # layout = QHBoxLayout()
         tabWidget = QTabWidget()
         dataWidget = QWidget()
+
         self.country_stats = QLabel('Countries visited:  / ')
         self.country_stats.setFont(label_font)
         self.country_stats.setAlignment(Qt.AlignCenter)
@@ -78,6 +80,7 @@ class MainWindow(QMainWindow):
         stats_layout.addWidget(self.state_stats)
         stats_layout.addWidget(self.country_stats)
         stats_layout.addWidget(self.wish_stats)
+
         add_location_button = QPushButton('Add Location')
         add_location_button.setFixedWidth(150)
         add_location_button.clicked.connect(self.add_location)
@@ -130,7 +133,7 @@ class MainWindow(QMainWindow):
 
     def display_data(self):
         self.tableWidget.setModel(PandasModel(self.model.data))
-        self.tableWidget.setSortingEnabled(True)
+        # self.tableWidget.setSortingEnabled(True)
         self.tableWidget.repaint()
 
     def on_cell_click(self, cell):
@@ -220,15 +223,15 @@ class PandasModel(QAbstractTableModel):
         self.endRemoveRows()
         return True
 
-    def sort(self, col, order=None):
-        """sort table by given column number col"""
+    # def sort(self, col, order=None):
+        # """sort table by given column number col"""
         # print(">>> sort() col = ", col)
-        if col != 0:
-            self.layoutAboutToBeChanged.emit()
-            self._data = sorted(self._data, key=operator.itemgetter(col))
-            if order == Qt.DescendingOrder:
-                self._data.reverse()
-            self.layoutChanged.emit()
+        # if col != 0:
+        #    self.layoutAboutToBeChanged.emit()
+        #    self._data = sorted(self._data, key=operator.itemgetter(col))
+        #   if order == Qt.DescendingOrder:
+        #        self._data.reverse()
+        #    self.layoutChanged.emit()
 
     def headerData(self, col, orientation, role=Qt.DisplayRole):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:

@@ -39,6 +39,7 @@ class LocationHandler(QObject):
 
     def on_data_change(self, data=pd.DataFrame):
         if not data.empty:
+            self.database.sort()
             self.saved = False
             self.updated.emit()
 
@@ -66,6 +67,7 @@ class LocationHandler(QObject):
             data.at[index, 'coordinates'] = '(' + str(lat) + ' ,' + str(long) + ', 0)'
 
         self.database.add_entry(data)
+        self.database.sort()
         self.saved = True
 
     def write_csv(self, file_name=''):
@@ -204,4 +206,7 @@ class GeoData(QObject):
             else:
                 print('No instances of ' + city_str + ' found.')
                 return
+
+    def sort(self):
+        self.data.sort_values(['Country', 'State', 'City', 'Address'], inplace=True)
 
