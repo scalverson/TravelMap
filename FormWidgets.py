@@ -1,10 +1,24 @@
-from PyQt5.QtWidgets import QFormLayout, QDialog, QRadioButton, QPushButton, QLineEdit, QHBoxLayout, QLabel # , QButtonGroup
+from PyQt5.QtWidgets import QFormLayout, QDialog, QRadioButton, QPushButton, QLineEdit, QHBoxLayout, QLabel, QCompleter  # , QButtonGroup
 from PyQt5.QtCore import pyqtSignal
-# from pandas import DataFrame as df
+from geonamescache import GeonamesCache
 
 
 class LocationEntry(QDialog):
     submitted = pyqtSignal(dict)
+
+    gc = GeonamesCache()
+    countries = []
+    for geo, country in gc.get_countries().items():
+        countries.append(country['name'])
+    countries_completer = QCompleter(countries)
+    states = []
+    for geo, state in gc.get_us_states().items():
+        states.append(state['name'])
+    states_completer = QCompleter(states)
+    cities = []
+    for geo, city in gc.get_cities().items():
+        cities.append(city['name'])
+    cities_completer = QCompleter(cities)
 
     def __init__(self, data=None, parent=None):
         super(LocationEntry, self).__init__(parent)
@@ -44,18 +58,21 @@ class LocationEntry(QDialog):
 
         city_label = QLabel('City:')
         self.city_entry = QLineEdit()
+        self.city_entry.setCompleter(self.cities_completer)
         city_layout = QHBoxLayout()
         city_layout.addWidget(city_label)
         city_layout.addWidget(self.city_entry)
 
         state_label = QLabel('State:')
         self.state_entry = QLineEdit()
+        self.state_entry.setCompleter(self.states_completer)
         state_layout = QHBoxLayout()
         state_layout.addWidget(state_label)
         state_layout.addWidget(self.state_entry)
 
         country_label = QLabel('Country:')
         self.country_entry = QLineEdit()
+        self.country_entry.setCompleter(self.countries_completer)
         country_layout = QHBoxLayout()
         country_layout.addWidget(country_label)
         country_layout.addWidget(self.country_entry)
