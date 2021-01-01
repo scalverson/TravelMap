@@ -2,14 +2,7 @@ from PyQt5.QtCore import pyqtSignal, QObject
 import pandas as pd
 from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
-from pycountry import countries
-
-states = ['Alaska', 'Alabama', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida',
-          'Georgia', 'Hawaii', 'Idaho', 'Indiana', 'Illinois', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine',
-          'Maryland', 'Massachusetts', 'Michigan', 'Mississippi', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire',
-          'New Jersey', 'New Mexico', 'New York', 'Minnesota', 'Missouri', 'North Carolina', 'North Dakota',
-          'Oklahoma', 'Ohio', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee',
-          'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming']
+from geonamescache import GeonamesCache
 
 db_fields = ['Address', 'City', 'State', 'Country', 'Visited', 'Lived', 'Wish', 'Favorite', 'Full Name', 'geocode', 'coordinates']
 
@@ -133,11 +126,11 @@ class LocationHandler(QObject):
 
     @property
     def total_countries(self):
-        return len(countries)
+        return len(GeonamesCache().get_countries())
 
     @property
     def total_states(self):
-        return len(states)
+        return len(GeonamesCache().get_us_states()) - 1  # Need to subtract one for Washington D.C.
 
     @property
     def visited_states(self):
