@@ -1,6 +1,8 @@
-from PyQt5.QtWidgets import QFormLayout, QDialog, QRadioButton, QPushButton, QLineEdit, QHBoxLayout, QLabel, QCompleter  # , QButtonGroup
+from PyQt5.QtWidgets import QFormLayout, QDialog, QRadioButton, QPushButton, QLineEdit, QHBoxLayout, QLabel, QCompleter
 from PyQt5.QtCore import pyqtSignal
 from geonamescache import GeonamesCache
+
+# TODO:  Add confirmation popup before submitting changes (include pulled geodata in confirmation)
 
 
 class LocationEntry(QDialog):
@@ -86,16 +88,10 @@ class LocationEntry(QDialog):
         self.visited_button = QRadioButton('Visited')
         self.visited_button.toggled.connect(self.on_visited_selection)
         self.wish_button = QRadioButton('Wish List')
-        # category_group = QButtonGroup()
-        # category_group.addButton(self.lived_button)
-        # category_group.addButton(self.visited_button)
-        # category_group.addButton(self.wish_button)
 
         self.favorite_button = QRadioButton('Favorite')
         self.favorite_button.setAutoExclusive(False)
         self.favorite_button.setEnabled(False)
-        # other_group = QButtonGroup()
-        # other_group.addButton(self.favorite_button)
 
         category_layout = QHBoxLayout()
         category_layout.addWidget(self.lived_button)

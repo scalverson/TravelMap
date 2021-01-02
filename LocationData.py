@@ -4,6 +4,9 @@ from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
 from geonamescache import GeonamesCache
 
+# TODO:  Add dates (time/date of entry, date of trip(s))?
+# TODO:  Add number of times visited?
+
 db_fields = ['Address', 'City', 'State', 'Country', 'Visited', 'Lived', 'Wish', 'Favorite', 'Full Name', 'geocode', 'coordinates']
 
 
@@ -20,6 +23,7 @@ class LocationHandler(QObject):
         self.saved = True
 
         self.database.entry_added.connect(self.on_data_change)
+        self.database.entry_removed.connect(self.on_data_change)
 
     @property
     def saved(self):
@@ -41,7 +45,7 @@ class LocationHandler(QObject):
         return self.database.data
 
     def read_csv(self, file):
-        data = pd.read_csv(file, na_values="")
+        data = pd.read_csv(file, na_values="")  # delimiter=', *', engine='python')
         data["State"] = " " + data["State"]
         data.fillna("", inplace=True)
 
@@ -66,6 +70,9 @@ class LocationHandler(QObject):
     def write_csv(self, file_name=''):
         self.data.to_csv(file_name, index=False)
         self.saved = True
+
+    def remove_location(self, index):
+        self.database.remove_entry(index)
 
     def new_location(self, loc_data):  # address='', city='', state='', country=''):
         loc_in_data = self.data[(self.data['Address'] == loc_data['Address']) &
@@ -163,11 +170,16 @@ class LocationHandler(QObject):
 
 class GeoData(QObject):
     entry_added = pyqtSignal(pd.DataFrame)
+    entry_removed = pyqtSignal(pd.DataFrame)
 
     def __init__(self):
         super(GeoData, self).__init__()
 
         self.data = pd.DataFrame(columns=db_fields)
+
+    def remove_entry(self, index):
+        self.data.drop(index, inplace=True)
+        self.entry_removed.emit(self.data)
 
     def add_entry(self, data):
         # print(data)

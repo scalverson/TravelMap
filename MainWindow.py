@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QMainWindow, QAction, QTabWidget, QTableView, QWidget, QVBoxLayout, QHBoxLayout, \
-                            QPushButton, QFileDialog, QMenuBar, QLabel, QMessageBox, QAbstractItemView
+                            QPushButton, QFileDialog, QMenuBar, QLabel, QMessageBox, QAbstractItemView, QMenu
 from PyQt5.QtCore import *
 from PyQt5.QtGui import QKeySequence, QFont
 from MapWidget import TravelMap
@@ -7,7 +7,20 @@ from LocationData import LocationHandler
 from FormWidgets import LocationEntry
 import platform
 from os import path
-import operator
+
+# TODO:  Add support for logging full trips (might require tree widget rather than table to display data)
+# TODO:  Add support for UnTappd data
+# TODO:  Auto-adjust width of columns to fit data (at least for most important columns)
+# TODO:  Hide/show less used columns?
+# TODO:  Add multi user/config support
+# TODO:  Save/restore settings between sessions?
+# TODO:  Add key shortcuts and Menu shortcuts?
+# TODO:  Modify table to use graphical check marks and x's instead of True/False, stars for Favorites
+# TODO:  Get QTableView clickable sorting to work?
+# TODO:  Encrypt saved geodata?
+# TODO:  Look into iCloud backup for user data
+# TODO:  Further graphical improvements, make prettier
+# TODO:  Data analysis graphical objects (progress bars, pie charts, plots)?
 
 
 class MainWindow(QMainWindow):
@@ -25,10 +38,13 @@ class MainWindow(QMainWindow):
 
         self.mapWidget = TravelMap(self.model.data)
         self.tableWidget = QTableView()
+        self.tableWidget.setContextMenuPolicy(Qt.CustomContextMenu)
         self.tableWidget.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.tableWidget.setSelectionMode(QAbstractItemView.SingleSelection)
         self.tableWidget.setSortingEnabled(False)
-        self.tableWidget.doubleClicked.connect(self.on_cell_click)
+        self.tableWidget.customContextMenuRequested.connect(self.on_context_menu_req)
+        self.tableWidget.doubleClicked.connect(self.on_cell_doubleclick)
+        # self.tableWidget.clicked.connect(self.on_cell_click)
 
         self.init_ui()
         self.display_data()
@@ -136,20 +152,55 @@ class MainWindow(QMainWindow):
         # self.tableWidget.setSortingEnabled(True)
         self.tableWidget.repaint()
 
-    def on_cell_click(self, cell):
+    def on_context_menu_req(self, point):
+        row = self.tableWidget.indexAt(point).row()
+        index = self.tableWidget.model().model_index(row)
+
+        menu = QMenu(self)
+        edit = menu.addAction('Edit Selected')
+        remove = menu.addAction('Remove Selected')
+        add = menu.addAction('Add New')
+        action = menu.exec(self.mapToGlobal(point))
+        if action == edit:
+            self.edit_location(index)
+        elif action == add:
+            self.add_location()
+        elif action == remove:
+            self.remove_location(index)
+
+    def on_cell_doubleclick(self, cell):
         # print(cell.data(), self.model.data.at[cell.row(), 'Country'])
-        data = self.model.data.loc[cell.row()]
-        form = LocationEntry(data.to_dict(), self)
-        form.submitted.connect(self.push_data)
-        form.exec_()
+        index = self.tableWidget.model().model_index(cell.row())
+        self.edit_location(index)
 
     def add_location(self):
         form = LocationEntry(None, self)
         form.submitted.connect(self.push_data)
         form.exec_()
 
+    def edit_location(self, index):
+        data = self.model.data.loc[index]
+        form = LocationEntry(data.to_dict(), self)
+        form.submitted.connect(self.push_data)
+        form.exec_()
+
+    def remove_location(self, index):
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Information)
+        msg.setText("Are you sure you wish to remove " + self.model.data.loc[index]['City'] + "?")
+        msg.setWindowTitle("Remove Location")
+        msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+
+        result = msg.exec()
+        if result == QMessageBox.Ok:
+            self.statusBar().showMessage('Removing location...')
+            self.model.remove_location(index)
+            self.mapWidget.update_data(self.model.data)
+            self.display_data()
+            self.statusBar().showMessage('Location Removed!', 2000)
+
     def save_data(self):
-        msg = QMessageBox()
+        msg = QMessageBox(self)
         msg.setIcon(QMessageBox.Information)
         msg.setText("Are you sure you wish to save your changes?")
         msg.setWindowTitle("Save Data")
@@ -187,8 +238,11 @@ class PandasModel(QAbstractTableModel):
     def data(self, index, role=Qt.DisplayRole):
         if index.isValid():
             if role == Qt.DisplayRole:
-                return str(self._data.values[index.row()][index.column()])
+                return str(self._data.values[index.row()][index.column()]).strip()
         return None
+
+    def model_index(self, row):
+        return self._data.index[row]
 
     def setData(self, index, value, role=Qt.DisplayRole):
         if not index.isValid():
