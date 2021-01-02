@@ -5,7 +5,6 @@ from os import path
 
 # TODO:  Chloropleth overlays for visited states/countries?
 # TODO:  Lines on separate layer for trips, maybe with icons for mode of transportation?
-# TODO:  Look into better map styles?
 
 
 class TravelMap(QWebEngineView):
@@ -16,7 +15,20 @@ class TravelMap(QWebEngineView):
         self.htmlFile = path.join(dirname, 'html/mapTemp.html')
 
         # tiles: 'cartodbdark_matter', 'cartodbpositron', 'stamentoner', 'mapquestopen', 'openstreetmap'
-        self.map_styles = ['cartodbpositron', 'openstreetmap', 'cartodbdark_matter']
+        mapbox = {'name': 'MapBox Bluish Custom',
+                  'link': 'https://api.mapbox.com/styles/v1/atropos158/ckjg82kit6npe1aqsccm9jfrp/tiles/256/{z}/{x}/{y}@2x?' + \
+                          'access_token=pk.eyJ1IjoiYXRyb3BvczE1OCIsImEiOiJja2pnNmt3Zjk0OGJhMndwZG82OXk4MTZ3In0.yhQCDJWRZdM8tRHQ26LHoQ',
+                  'attr': 'MapBox'}
+        carto_light = {'name': 'CartoDB Light',
+                       'link': 'cartodbpositron',
+                       'attr': 'CartoDB'}
+        carto_dark = {'name': 'CartoDB Dark',
+                      'link': 'cartodbdark_matter',
+                      'attr': 'CartDB'}
+        openstreet = {'name': 'OpenStreet Basic',
+                      'link': 'openstreetmap',
+                      'attr': 'OpenStreet'}
+        self.map_styles = [mapbox, carto_light, carto_dark, openstreet]
 
         self.update_data(location_data)
         # self.layer_ctrl.add_to(self.map)
@@ -29,21 +41,17 @@ class TravelMap(QWebEngineView):
         # self.show()
 
     def generate_map(self, locations):
-        new_map = Map(location=[0.0, 0.0], zoom_start=2, tiles=self.map_styles[0])
+        new_map = Map(location=[0.0, 0.0], zoom_start=2, tiles=None)  # , no_wrap=True, min_zoom=2, max_bounds=True)
         new_map.fit_bounds([[60, -120], [-35, 120]])
 
-        # layer_ctrl = LayerControl()
-        # layer_ctrl.add_to(new_map)
-        # self.layers = []
+        first = True
         for style in self.map_styles:
-            layer = TileLayer(style)
-            # self.layers.append(layer)
+            if first:
+                show = True
+            else:
+                show = False
+            layer = TileLayer(style['link'], name=style['name'], attr=style['attr'], show=show)
             layer.add_to(new_map)
-        # TileLayer('openstreetmap').add_to(new_map)
-        # TileLayer('mapquestopen').add_to(new_map)
-        # TileLayer('cartodbpositron').add_to(new_map)
-        # TileLayer('cartodbdark_matter').add_to(new_map)
-        # TileLayer('stamentoner').add_to(new_map)
 
         # dirname = path.dirname(__file__)
         # usa_map = path.join(dirname, 'data/us_states_geo.json')
@@ -51,7 +59,6 @@ class TravelMap(QWebEngineView):
         #                    columns=['State', 'Visited'],
         #                    key_on='feature.properties.NAME',
         #                    fill_color='YlGn', fill_opacity=0.6, line_opacity=0.2)
-
         # self.plot_choropleth(location_data)
 
         marked_map = self.plot_markers(new_map, locations)
