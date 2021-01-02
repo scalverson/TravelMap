@@ -29,10 +29,12 @@ class MainWindow(QMainWindow):
 
         self.statusBar().showMessage('Loading Data...')
 
+        # Prepare data model
         self.model = LocationHandler()
         self.model.data_changed.connect(self.on_data_change)
         self.model.new_save_state.connect(self.check_save_state)
 
+        # Prepare main widgets
         self.mapWidget = TravelMap(self.model.data)
         self.tableWidget = QTableView()
         self.tableWidget.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -43,8 +45,10 @@ class MainWindow(QMainWindow):
         self.tableWidget.doubleClicked.connect(self.on_cell_doubleclick)
         # self.tableWidget.clicked.connect(self.on_cell_click)
 
+        # Create/show remaining ui
         self.init_ui()
 
+        # Populate model and display results
         dirname = path.dirname(__file__)
         self.csvfile = path.join(dirname, 'data/user_sca_geodata.csv')
         self.model.read_csv(self.csvfile)

@@ -112,8 +112,7 @@ class LocationHandler(QObject):
     def format_name(self, city=pd.DataFrame()):
         name_str = ''
         if not city.empty:
-            city["State"] = " " + city["State"]
-            name_str = city["Address"] + " " + city["City"] + city["State"] + ", " + city["Country"]
+            name_str = city["Address"] + " " + city["City"] + " " + city["State"] + ", " + city["Country"]
         return name_str
 
     def get_geoloc(self, city=''):
