@@ -119,10 +119,10 @@ class LocationEntry(QDialog):
             self.favorite_button.setChecked(False)
 
     def submit_entry(self):
-        data = {'Address':   str(self.address_entry.text()),
-                'City':      str(self.city_entry.text()),
-                'State':     str(self.state_entry.text()),
-                'Country':   str(self.country_entry.text()),
+        data = {'Address':   str(self.address_entry.text()).strip(),
+                'City':      str(self.city_entry.text()).strip(),
+                'State':     str(self.state_entry.text()).strip(),
+                'Country':   str(self.country_entry.text()).strip(),
                 'Lived':     self.lived_button.isChecked(),
                 'Visited':   self.visited_button.isChecked(),
                 'Wish':      self.wish_button.isChecked(),

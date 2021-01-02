@@ -3,6 +3,10 @@ from PyQt5.QtCore import QUrl
 from PyQt5.QtWebEngineWidgets import *
 from os import path
 
+# TODO:  Chloropleth overlays for visited states/countries?
+# TODO:  Lines on separate layer for trips, maybe with icons for mode of transportation?
+# TODO:  Look into better map styles?
+
 
 class TravelMap(QWebEngineView):
     def __init__(self, location_data):

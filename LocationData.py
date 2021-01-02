@@ -11,7 +11,7 @@ db_fields = ['Address', 'City', 'State', 'Country', 'Visited', 'Lived', 'Wish', 
 
 
 class LocationHandler(QObject):
-    updated = pyqtSignal()
+    new_save_state = pyqtSignal(bool)
     data_changed = pyqtSignal()
 
     def __init__(self):
@@ -31,14 +31,14 @@ class LocationHandler(QObject):
 
     @saved.setter
     def saved(self, state=False):
-        self.data_changed.emit()
         self._saved = state
+        self.new_save_state.emit(state)
 
     def on_data_change(self, data=pd.DataFrame):
         if not data.empty:
             self.database.sort()
             self.saved = False
-            self.updated.emit()
+        self.data_changed.emit()
 
     @property
     def data(self):
@@ -46,7 +46,7 @@ class LocationHandler(QObject):
 
     def read_csv(self, file):
         data = pd.read_csv(file, na_values="")  # delimiter=', *', engine='python')
-        data["State"] = " " + data["State"]
+        # data["State"] = " " + data["State"]
         data.fillna("", inplace=True)
 
         # data = pd.concat([self.data, csv_data], sort=False)
@@ -64,7 +64,6 @@ class LocationHandler(QObject):
             data.at[index, 'coordinates'] = '(' + str(lat) + ' ,' + str(long) + ', 0)'
 
         self.database.add_entry(data)
-        self.database.sort()
         self.saved = True
 
     def write_csv(self, file_name=''):
@@ -143,7 +142,7 @@ class LocationHandler(QObject):
     def visited_states(self):
         state_list = []
         for index, entry in self.data.iterrows():
-            if entry['Visited'] is True and entry['State']:
+            if entry['Visited'] is True and entry['Country'] == 'United States' and entry['State']:
                 state_list.append(entry['State'])
         return list(set(state_list))
 

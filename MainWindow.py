@@ -30,11 +30,8 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage('Loading Data...')
 
         self.model = LocationHandler()
-        dirname = path.dirname(__file__)
-        self.csvfile = path.join(dirname, 'data/user_sca_geodata.csv')
-        self.model.read_csv(self.csvfile)
-
-        # print(self.model.country_cnt, self.model.state_cnt)
+        self.model.data_changed.connect(self.on_data_change)
+        self.model.new_save_state.connect(self.check_save_state)
 
         self.mapWidget = TravelMap(self.model.data)
         self.tableWidget = QTableView()
@@ -47,11 +44,13 @@ class MainWindow(QMainWindow):
         # self.tableWidget.clicked.connect(self.on_cell_click)
 
         self.init_ui()
+
+        dirname = path.dirname(__file__)
+        self.csvfile = path.join(dirname, 'data/user_sca_geodata.csv')
+        self.model.read_csv(self.csvfile)
+        self.mapWidget.update_data(self.model.data)
         self.display_data()
 
-        self.model.data_changed.connect(self.on_data_change)
-
-        self.on_data_change()
         self.statusBar().showMessage('Ready', 2000)
 
     def init_ui(self):
@@ -128,11 +127,13 @@ class MainWindow(QMainWindow):
         self.show()
 
     def on_data_change(self):
+        self.update_stats()
+
+    def check_save_state(self):
         if self.model.saved:
             self.save_data_button.setVisible(False)
         else:
             self.save_data_button.setVisible(True)
-        self.update_stats()
 
     def update_stats(self):
         self.country_stats.setText('Countries visited: ' + str(self.model.country_cnt) + '/' + str(self.model.total_countries))
