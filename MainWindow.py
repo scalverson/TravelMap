@@ -1,7 +1,7 @@
-from PyQt5.QtWidgets import QMainWindow, QAction, QTabWidget, QTableView, QWidget, QVBoxLayout, QHBoxLayout, \
+from PyQt6.QtWidgets import QMainWindow, QTabWidget, QTableView, QWidget, QVBoxLayout, QHBoxLayout, \
                             QPushButton, QFileDialog, QMenuBar, QLabel, QMessageBox, QAbstractItemView, QMenu
-from PyQt5.QtCore import *
-from PyQt5.QtGui import QKeySequence, QFont
+from PyQt6.QtCore import Qt, QAbstractTableModel, QModelIndex
+from PyQt6.QtGui import QKeySequence, QFont, QAction
 from MapWidget import TravelMap
 from LocationData import LocationHandler
 from FormWidgets import LocationEntry
@@ -35,11 +35,11 @@ class MainWindow(QMainWindow):
         self.model.new_save_state.connect(self.check_save_state)
 
         # Prepare main widgets
-        self.mapWidget = TravelMap(self.model.data)
+        self.mapWidget = TravelMap(self.model.data, self)
         self.tableWidget = QTableView()
-        self.tableWidget.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.tableWidget.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.tableWidget.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.tableWidget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tableWidget.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.tableWidget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.tableWidget.setSortingEnabled(False)
         self.tableWidget.customContextMenuRequested.connect(self.on_context_menu_req)
         self.tableWidget.doubleClicked.connect(self.on_cell_doubleclick)
@@ -78,7 +78,7 @@ class MainWindow(QMainWindow):
         newAction = fileMenu.addAction(self.tr('Fine Menu Command', '&New'))
         # fileMenu.addAction(loadAct)
 
-        newAction.setShortcut(QKeySequence.New)
+        newAction.setShortcut(QKeySequence.StandardKey.New)
         newAction.setToolTip(self.tr('File:New tooltip', 'Create a new, empty document'))
         # newAction.triggered.connect(self.load_file())
 
@@ -88,13 +88,13 @@ class MainWindow(QMainWindow):
 
         self.country_stats = QLabel('Countries visited:  / ')
         self.country_stats.setFont(label_font)
-        self.country_stats.setAlignment(Qt.AlignCenter)
+        self.country_stats.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.state_stats = QLabel('States visited:  / ')
         self.state_stats.setFont(label_font)
-        self.state_stats.setAlignment(Qt.AlignCenter)
+        self.state_stats.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.wish_stats = QLabel('Wish list: ')
         self.wish_stats.setFont(label_font)
-        self.wish_stats.setAlignment(Qt.AlignCenter)
+        self.wish_stats.setAlignment(Qt.AlignmentFlag.AlignCenter)
         stats_layout = QHBoxLayout()
         stats_layout.addWidget(self.state_stats)
         stats_layout.addWidget(self.country_stats)
@@ -109,8 +109,8 @@ class MainWindow(QMainWindow):
         self.save_data_button.clicked.connect(self.save_data)
 
         button_layout = QHBoxLayout()
-        button_layout.addWidget(add_location_button, Qt.AlignLeft)
-        button_layout.addWidget(self.save_data_button, Qt.AlignRight)
+        button_layout.addWidget(add_location_button, Qt.AlignmentFlag.AlignLeft)
+        button_layout.addWidget(self.save_data_button, Qt.AlignmentFlag.AlignRight)
 
         data_layout = QVBoxLayout()
         data_layout.addLayout(stats_layout)
@@ -181,23 +181,23 @@ class MainWindow(QMainWindow):
     def add_location(self):
         form = LocationEntry(None, self)
         form.submitted.connect(self.push_data)
-        form.exec_()
+        form.exec()
 
     def edit_location(self, index):
         data = self.model.data.loc[index]
         form = LocationEntry(data.to_dict(), self)
         form.submitted.connect(self.push_data)
-        form.exec_()
+        form.exec()
 
     def remove_location(self, index):
         msg = QMessageBox(self)
-        msg.setIcon(QMessageBox.Information)
+        msg.setIcon(QMessageBox.Icon.Information)
         msg.setText("Are you sure you wish to remove " + self.model.data.loc[index]['City'] + "?")
         msg.setWindowTitle("Remove Location")
-        msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+        msg.setStandardButtons(QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
 
         result = msg.exec()
-        if result == QMessageBox.Ok:
+        if result == QMessageBox.StandardButton.Ok:
             self.statusBar().showMessage('Removing location...')
             self.model.remove_location(index)
             self.mapWidget.update_data(self.model.data)
@@ -206,13 +206,13 @@ class MainWindow(QMainWindow):
 
     def save_data(self):
         msg = QMessageBox(self)
-        msg.setIcon(QMessageBox.Information)
+        msg.setIcon(QMessageBox.Icon.Information)
         msg.setText("Are you sure you wish to save your changes?")
         msg.setWindowTitle("Save Data")
-        msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+        msg.setStandardButtons(QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
 
         result = msg.exec()
-        if result == QMessageBox.Ok:
+        if result == QMessageBox.StandardButton.Ok:
             self.statusBar().showMessage('Saving...')
             self.model.write_csv(self.csvfile)
             self.statusBar().showMessage('Saving...', 2000)
@@ -240,19 +240,19 @@ class PandasModel(QAbstractTableModel):
     def columnCount(self, parent=None):
         return self._data.columns.size
 
-    def data(self, index, role=Qt.DisplayRole):
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
         if index.isValid():
-            if role == Qt.DisplayRole:
+            if role == Qt.ItemDataRole.DisplayRole:
                 return str(self._data.values[index.row()][index.column()]).strip()
         return None
 
     def model_index(self, row):
         return self._data.index[row]
 
-    def setData(self, index, value, role=Qt.DisplayRole):
+    def setData(self, index, value, role=Qt.ItemDataRole.DisplayRole):
         if not index.isValid():
             return False
-        if role == Qt.DisplayRole and index.column() == 0:
+        if role == Qt.ItemDataRole.DisplayRole and index.column() == 0:
             # do stuff
             pass
         else:
@@ -292,8 +292,8 @@ class PandasModel(QAbstractTableModel):
         #        self._data.reverse()
         #    self.layoutChanged.emit()
 
-    def headerData(self, col, orientation, role=Qt.DisplayRole):
-        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+    def headerData(self, col, orientation, role=Qt.ItemDataRole.DisplayRole):
+        if orientation == Qt.Orientation.Horizontal and role == Qt.ItemDataRole.DisplayRole:
             return self._data.columns[col]
         return None
 

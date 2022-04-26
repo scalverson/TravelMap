@@ -1,6 +1,6 @@
 from folium import Map, Marker, Popup, Icon, FeatureGroup, LayerControl, TileLayer
-from PyQt5.QtCore import QUrl
-from PyQt5.QtWebEngineWidgets import *
+from PyQt6.QtCore import QUrl
+from PyQt6.QtWebEngineWidgets import *
 from os import path
 
 # TODO:  Chloropleth overlays for visited states/countries?
@@ -8,8 +8,8 @@ from os import path
 
 
 class TravelMap(QWebEngineView):
-    def __init__(self, location_data):
-        super(TravelMap, self).__init__()
+    def __init__(self, location_data, parent=None):
+        super(TravelMap, self).__init__(parent=parent)
 
         dirname = path.dirname(__file__)
         self.htmlFile = path.join(dirname, 'html/mapTemp.html')
@@ -122,17 +122,22 @@ class TravelMap(QWebEngineView):
 
     def load_map_html(self, url):
         try:
-            self.load(url)
+            # As of PyQt6, loading leaflet as QUrl throws js ReferenceError for some reason, so loading as HTML instead.
+            #self.page().load(url)
+            #self.setUrl(url)
+            with open(self.htmlFile, 'r') as f:
+                html = f.read()
+                self.setHtml(html)
         except:
             print("Cannot load html!")
 
-    def plot_choropleth(self, locations):
-        dirname = path.dirname(__file__)
-        usa_map = path.join(dirname, 'data/us_states_geo.json')
-        self.map.choropleth(geo_data=usa_map, data=locations,
-                            columns=['State', 'Visited'],
-                            key_on='feature.properties.NAME',
-                            fill_color='YlGn', fill_opacity=0.6, line_opacity=0.2)
-
-        # LayerControl().add_to(self.map)
+    # def plot_choropleth(self, locations):
+    #     dirname = path.dirname(__file__)
+    #     usa_map = path.join(dirname, 'data/us_states_geo.json')
+    #     self.map.choropleth(geo_data=usa_map, data=locations,
+    #                         columns=['State', 'Visited'],
+    #                         key_on='feature.properties.NAME',
+    #                         fill_color='YlGn', fill_opacity=0.6, line_opacity=0.2)
+    #
+    #      LayerControl().add_to(self.map)
 

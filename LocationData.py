@@ -1,4 +1,4 @@
-from PyQt5.QtCore import pyqtSignal, QObject
+from PyQt6.QtCore import pyqtSignal, QObject
 import pandas as pd
 from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
@@ -105,7 +105,7 @@ class LocationHandler(QObject):
             location.at[0, 'Full Name'] = full_name
             address, lat, long = self.get_geoloc(full_name)
             location.at[0, 'geocode'] = address
-            if lat is not None and long is not None:
+            if lat is not None and long is not None:  # TODO:  Should also throw error and pop up dialog if bad geoloc
                 location.at[0, 'coordinates'] = '(' + str(lat) + ' ,' + str(long) + ' , 0)'
             self.database.add_entry(location)
 
@@ -127,6 +127,7 @@ class LocationHandler(QObject):
             except TypeError:
                 print('Could not retrieve geocode!  Check input fields and try again.')
             # print(address, lat, long)
+        print(address, lat, long)
         return address, lat, long
 
     @property
@@ -181,7 +182,7 @@ class GeoData(QObject):
 
     def add_entry(self, data):
         # print(data)
-        self.data = self.data.append(data, sort=False, ignore_index=True)
+        self.data = pd.concat([self.data, data], sort=False, ignore_index=True)
         # print(self.data)
         self.entry_added.emit(data)
 

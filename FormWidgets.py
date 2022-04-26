@@ -1,8 +1,9 @@
-from PyQt5.QtWidgets import QFormLayout, QDialog, QRadioButton, QPushButton, QLineEdit, QHBoxLayout, QLabel, QCompleter
-from PyQt5.QtCore import pyqtSignal
+from PyQt6.QtWidgets import QFormLayout, QDialog, QRadioButton, QPushButton, QLineEdit, QHBoxLayout, QLabel, QCompleter
+from PyQt6.QtCore import pyqtSignal
 from geonamescache import GeonamesCache
 
 # TODO:  Add confirmation popup before submitting changes (include pulled geodata in confirmation)
+# TODO:  Add Comment field to allow for unique place names not found in geoloc search
 
 
 class LocationEntry(QDialog):
