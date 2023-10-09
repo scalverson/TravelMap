@@ -3,6 +3,7 @@ import pandas as pd
 from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
 from geonamescache import GeonamesCache
+from os import path
 
 # TODO:  Add dates (time/date of entry, date of trip(s))?
 # TODO:  Add number of times visited?
@@ -45,6 +46,8 @@ class LocationHandler(QObject):
         return self.database.data
 
     def read_csv(self, file):
+        if not path.isfile(file):
+            pd.DataFrame(columns=db_fields).to_csv(file)
         data = pd.read_csv(file, na_values="")  # delimiter=', *', engine='python')
         # data["State"] = " " + data["State"]
         data.fillna("", inplace=True)
