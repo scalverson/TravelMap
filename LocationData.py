@@ -14,6 +14,7 @@ db_fields = ['Address', 'City', 'State', 'Country', 'Visited', 'Lived', 'Wish', 
 class LocationHandler(QObject):
     new_save_state = pyqtSignal(bool)
     data_changed = pyqtSignal()
+    exception = pyqtSignal(Exception)
 
     def __init__(self):
         super(LocationHandler, self).__init__()
@@ -106,9 +107,15 @@ class LocationHandler(QObject):
                 location.at[0, 'Favorite'] = loc_data['Favorite']
             full_name = self.format_name(location.loc[0])
             location.at[0, 'Full Name'] = full_name
-            address, lat, long = self.get_geoloc(full_name)
+            try:
+                address, lat, long = self.get_geoloc(full_name)
+            except Exception as e:
+                # print(e, type(e), e.args)
+                self.exception.emit(e)
+                return
             location.at[0, 'geocode'] = address
-            if lat is not None and long is not None:  # TODO:  Should also throw error and pop up dialog if bad geoloc
+            # TODO:  Should also throw error and pop up dialog if bad geoloc
+            if lat is not None and long is not None:
                 location.at[0, 'coordinates'] = '(' + str(lat) + ' ,' + str(long) + ' , 0)'
             self.database.add_entry(location)
 

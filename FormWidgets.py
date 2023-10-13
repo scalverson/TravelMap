@@ -8,6 +8,7 @@ from geonamescache import GeonamesCache
 
 class LocationEntry(QDialog):
     submitted = pyqtSignal(dict)
+    exception = pyqtSignal(str)
 
     gc = GeonamesCache()
     countries = []

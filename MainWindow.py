@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import QMainWindow, QTabWidget, QTableView, QWidget, QVBoxLayout, QHBoxLayout, \
-                            QPushButton, QFileDialog, QMenuBar, QLabel, QMessageBox, QAbstractItemView, QMenu
+                            QPushButton, QFileDialog, QErrorMessage, QMenuBar, QLabel, QMessageBox, QAbstractItemView, QMenu
 from PyQt6.QtCore import Qt, QAbstractTableModel, QModelIndex
 from PyQt6.QtGui import QKeySequence, QFont, QAction
 from MapWidget import TravelMap
@@ -33,6 +33,7 @@ class MainWindow(QMainWindow):
         self.model = LocationHandler()
         self.model.data_changed.connect(self.on_data_change)
         self.model.new_save_state.connect(self.check_save_state)
+        self.model.exception.connect(self.error_dialog)
 
         # Prepare main widgets
         self.mapWidget = TravelMap(self.model.data, self)
@@ -187,7 +188,11 @@ class MainWindow(QMainWindow):
         data = self.model.data.loc[index]
         form = LocationEntry(data.to_dict(), self)
         form.submitted.connect(self.push_data)
+        form.exception.connect(self.error_dialog)
         form.exec()
+
+    def error_dialog(self, e):
+        QMessageBox().warning(self, 'Error Encountered!', str(e))
 
     def remove_location(self, index):
         msg = QMessageBox(self)
